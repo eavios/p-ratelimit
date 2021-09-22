@@ -27,7 +27,7 @@ export class RedisQuotaManager extends QuotaManager {
     private readonly channelQuota: Quota,
     channelName: string,
     client: RedisCompatibleClient | RedisCompatibleClient[],
-    private readonly heartbeatInterval = 30000
+    private readonly heartbeatInterval = 30000,    
   ) {
     // start with 0 concurrency so jobs don’t run until we’re ready
     super(
@@ -129,7 +129,10 @@ export class RedisQuotaManager extends QuotaManager {
     }
 
     const newQuota = Object.assign({}, this.channelQuota);
-    newQuota.rate = Math.floor(newQuota.rate / this.pingsReceived.size);
+
+    let adjustedRate = Math.floor(newQuota.rate / this.pingsReceived.size);
+    this._effectiveRate = adjustedRate < this._quota.rateLowerBound ? this._quota.rateLowerBound : adjustedRate;
+   
     if (newQuota.concurrency) {
       newQuota.concurrency = Math.floor(newQuota.concurrency / this.pingsReceived.size);
     }

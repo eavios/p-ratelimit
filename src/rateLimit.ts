@@ -5,7 +5,7 @@ import { RateLimitTimeoutError } from './rateLimitTimeoutError';
 
 export function pRateLimit(
   quotaManager: QuotaManager | Quota
-): <T>(fn: () => Promise<T>) => Promise<T> {
+): <T>(fn: () => Promise<T>, weight: number) => Promise<T> {
   if (!(quotaManager instanceof QuotaManager)) {
     return pRateLimit(new QuotaManager(quotaManager));
   }
@@ -14,7 +14,7 @@ export function pRateLimit(
   let timerId: NodeJS.Timer = null;
 
   const next = () => {
-    while (queue.length && quotaManager.start()) {
+    while (queue.length && quotaManager.start(queue.weight)) {
       queue.shift()();
     }
 
@@ -26,7 +26,7 @@ export function pRateLimit(
     }
   };
 
-  return <T>(fn: () => Promise<T>) => {
+  return <T>(fn: () => Promise<T>, weight: number = 1) => {
     return new Promise<T>((resolve, reject) => {
       let timerId: NodeJS.Timer = null;
       if (quotaManager.maxDelay) {
@@ -61,7 +61,7 @@ export function pRateLimit(
           });
       };
 
-      queue.push(run);
+      queue.push(run, weight);
       next();
     });
   };

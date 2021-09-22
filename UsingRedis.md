@@ -30,7 +30,7 @@ Instead of passing a `Quota`, pass the `RedisQuotaManager` to it.
 
 ```typescript
 const channelName = 'my-channel';
-const quota = { concurrency: 10, interval: 1000, rate: 50, fastStart: true };
+const quota = { concurrency: 10, interval: 1000, rate: 50, fastStart: true, rateLowerBound: 20 };
 const quotaManager = new RedisQuotaManager(quota, channelName, redisClient);
 const rateLimiter = pRateLimit(quotaManager);
 ```
@@ -43,7 +43,7 @@ Upon startup, a rate limiter pings the pub/sub channel with its own unique id. E
 
 In this way, each server becomes aware of its peers.
 
-As a server discovers new peers, it recalculates its quota to be `Math.floor(1 / number of peers)` of the overall `concurrency` and `rate` quotas.
+As a server discovers new peers, it recalculates its quota to be `Math.floor(1 / number of peers)` of the overall `concurrency` and `rate` quotas. s.
 
 ### Reclaiming quota from servers that go offline
 
@@ -60,3 +60,17 @@ If the `Quota` has `fastStart` set to `true`, the rate-limiter will immediately 
 If `fastStart` is `false` (the default), the rate-limiter starts with a quota of `0`. All API requests are queued and no requests are processed yet. After several seconds, when the rate-limiter has discovered its peers, its true quota is calculated and it begins processing the queued requests.
 
 A `fastStart` value of `true` will begin processing requests immediately, but there’s a small chance it could briefly cause the shared rate limit to be exceeded. A value of `false` makes sure the limit is not exceeded, but your app may run slowly at first, as the first API calls may be delayed for a few seconds.
+
+## The `rateLowerBound` option
+
+If the `Quota` has `rateLowerBound` set to a value greater than 1, then when the rate-limiter recalculates the quota for each server it will guarantee that at least one server in the cluster has a quota of at least the `rateLowerBound` allowing for weighted process API requests. 
+
+This allows you to use the rate limiter for scenarios where the API calls may have different quota costs and guarantee that at least one server in the cluster can serve request. The `rateLowerBound` value should be set to the highest quota cost value in the set of API calls.
+
+Example:
+
+| API Call weights | # of Servers  | Rate | RateLowerBound value  | Server quotas |
+|------------------|---------------|------|-----------------------|-----------------------|
+| 100, 5, 20       | 2             | 110  | 100                   | 100, 10               |
+| 1, 1, 1          | 4             | 10   |  1                    |  3, 3, 3, 1           |
+| 4, 4, 4          | 3             | 5    |  1                    |  2, 2, 1                    |

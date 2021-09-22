@@ -15,4 +15,9 @@ export interface Quota {
    * instead of waiting several seconds to discover other servers (default: false)
    */
   fastStart?: boolean;
+  
+  /**
+   * (Redis only): when using weighted requests set servers to minimum of quota, must be less than equal to interval rate (default: 1)
+   */
+  rateLowerBound?: number;
 }

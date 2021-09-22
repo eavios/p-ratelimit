@@ -5,6 +5,7 @@ import { Quota } from './quota';
 export class QuotaManager {
   protected _activeCount = 0;
   protected history = new Dequeue();
+  protected _effectiveRate: number;
 
   constructor(protected _quota: Quota) {
     if (typeof _quota !== 'object') {
@@ -23,6 +24,8 @@ export class QuotaManager {
         `interval and rate must be specified.`;
       throw new Error(msg);
     }
+
+    this._effectiveRate = this._quota.rate;
   }
 
   /** The current quota */
@@ -40,18 +43,24 @@ export class QuotaManager {
     return this._quota.maxDelay || 0;
   }
 
+  /** The effective rate of the limiter when the concurrency and lower bound rate are applied */
+  get effectiveRate() {
+    return this._effectiveRate;
+  }
+
   /**
    * Log that an invocation started.
    * @returns true if the invocation was allowed, false if not (you can try again later)
    */
-  start() {
+  start(queueWeight: number) {
     if (this._activeCount >= this._quota.concurrency) {
       return false;
     }
 
-    if (this._quota.interval !== undefined && this._quota.rate !== undefined) {
+    if (this._quota.interval !== undefined && this.effectiveRate !== undefined) {
       this.removeExpiredHistory();
-      if (this.history.length >= this._quota.rate) {
+
+    if (queueWeight >= this.effectiveRate) {
         return false;
       }
       this.history.push(Date.now());

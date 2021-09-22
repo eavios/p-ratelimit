@@ -2,10 +2,12 @@ interface Node<T> {
   value: T;
   prev: Node<T>;
   next: Node<T>;
+  weight: number;
 }
 
 export class Dequeue<T> {
   private _length = 0;
+  private _weight = undefined;
   private head: Node<T> = undefined;
   private tail: Node<T> = undefined;
 
@@ -13,16 +15,22 @@ export class Dequeue<T> {
     return this._length;
   }
 
+  get weight() {
+    return this._weight;
+  }
+
   clear() {
     this.head = this.tail = undefined;
     this._length = 0;
+    this._weight = undefined;
   }
 
-  push(value: T) {
+  push(value: T, weight: number = 0) {
     const newNode: Node<T> = {
       value,
       prev: this.tail,
-      next: undefined
+      next: undefined,
+      weight,
     };
 
     if (this._length) {
@@ -32,6 +40,7 @@ export class Dequeue<T> {
       this.head = this.tail = newNode;
     }
     this._length++;
+    this._weight += weight;
   }
 
   pop(): T {
@@ -41,17 +50,20 @@ export class Dequeue<T> {
     const result = this.tail;
     this.tail = this.tail.prev;
     this._length--;
+    this._weight -= result.weight;
     if (!this._length) {
       this.head = this.tail = undefined;
+      this._weight = undefined;
     }
     return result.value;
   }
 
-  unshift(value: T) {
+  unshift(value: T, weight: number = 0) {
     const newNode: Node<T> = {
       value,
       prev: undefined,
-      next: this.head
+      next: this.head,
+      weight,
     };
 
     if (this._length) {
@@ -62,6 +74,7 @@ export class Dequeue<T> {
     }
 
     this._length++;
+    this._weight += weight;
   }
 
   shift(): T {
@@ -71,8 +84,10 @@ export class Dequeue<T> {
     const result = this.head;
     this.head = this.head.next;
     this._length--;
+    this._weight -= result.weight;
     if (!this._length) {
       this.head = this.tail = undefined;
+      this._weight = undefined;
     }
     return result.value;
   }
