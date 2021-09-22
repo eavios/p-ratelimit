@@ -78,23 +78,23 @@ test('Redis quota manager works', async t => {
 
   await waitForReady(qm);
 
-  t.true(qm.start(), 'start job (1)');
-  t.true(qm.start(), 'start job (2)');
-  t.false(qm.start(), 'would exceed max concurrency of 2');
+  t.true(qm.start(1), 'start job (1)');
+  t.true(qm.start(2), 'start job (2)');
+  t.false(qm.start(3), 'would exceed max concurrency of 2');
   qm.end();
-  t.true(qm.start(), 'start job (3)');
+  t.true(qm.start(2), 'start job (3)');
   t.is(qm.activeCount, 2);
-  t.false(qm.start(), 'would exceed quota of 3 per 1/2 second');
+  t.false(qm.start(2), 'would exceed quota of 3 per 1/2 second');
   qm.end();
   t.is(qm.activeCount, 1, 'still 1 running');
-  t.false(qm.start(), 'still would exceed quota of 3 per 1/2 second');
+  t.false(qm.start(1), 'still would exceed quota of 3 per 1/2 second');
   await sleep(600);
   t.is(qm.activeCount, 1, 'still 1 running, after sleep');
-  t.true(qm.start(), 'start job (4)');
+  t.true(qm.start(2), 'start job (4)');
   t.is(qm.activeCount, 2, 'still 2 running');
-  t.false(qm.start(), 'would exceed max concurrency of 2');
+  t.false(qm.start(3), 'would exceed max concurrency of 2');
   qm.end();
-  t.true(qm.start(), 'start job (5)');
+  t.true(qm.start(3), 'start job (5)');
   t.is(qm.activeCount, 2, 'still 2 running');
   qm.end();
   qm.end();

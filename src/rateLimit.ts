@@ -5,7 +5,7 @@ import { RateLimitTimeoutError } from './rateLimitTimeoutError';
 
 export function pRateLimit(
   quotaManager: QuotaManager | Quota
-): <T>(fn: () => Promise<T>, weight: number) => Promise<T> {
+): <T>(fn: () => Promise<T>, weight?: number) => Promise<T> {
   if (!(quotaManager instanceof QuotaManager)) {
     return pRateLimit(new QuotaManager(quotaManager));
   }
